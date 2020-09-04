@@ -8,14 +8,14 @@ import os, re
 try:
     import requests
 except ModuleNotFoundError as e:
-    os.system('pip install requests')
+    os.system('pip install requests -i https://pypi.tuna.tsinghua.edu.cn/simple')
 
 try:
     from rich.progress import track
 except ModuleNotFoundError as e:
-    os.system('pip install rich')
+    os.system('pip install rich -i https://pypi.tuna.tsinghua.edu.cn/simple')
 
-def dateRange(start, end, format="%Y-%m-%d-%H-%M"):
+def dateRange(start, end, step, format="%Y-%m-%d-%H-%M"):
     '''
     generate the date from start time to end time
     start: start time, format: '2020-01-01-00-00'
@@ -25,14 +25,35 @@ def dateRange(start, end, format="%Y-%m-%d-%H-%M"):
     start_time = datetime.datetime.strptime(start, format)
     end_time = datetime.datetime.strptime(end, format)
     time_delta = end_time - start_time
-    # total minutes
-    minutes = (time_delta.seconds + time_delta.days*24*3600) // 60
-    cur_time = start_time - datetime.timedelta(minutes=1)
-    for minute in range(minutes+1):
-        cur_time = cur_time + datetime.timedelta(minutes=1)
-        yield datetime.datetime.strftime(cur_time, "%Y-%m-%d-%H-%M")
+    if step == 'minute':
+        # if time step is mimute, generate a list in 1 minute increments
+        # total minutes
+        minutes = (time_delta.seconds + time_delta.days*24*3600) // 60
+        cur_time = start_time - datetime.timedelta(minutes=1)
+        for minute in range(minutes+1):
+            cur_time = cur_time + datetime.timedelta(minutes=1)
+            yield datetime.datetime.strftime(cur_time, "%Y-%m-%d-%H-%M")
+    elif step == 'hour':
+        # if time step is hour, generate a list in 1 hours increments
+        # total hours
+        hours = (time_delta.second + time_delta.days*24) // 60
+        cur_time = start_time -datetime.timedelta(hours=1)
+        for hour in range(hours + 1):
+            cur_time = cur_time + datetime.timedelta(hours=1)
+            yield datetime.datetime.strftime(cur_time, "%Y-%m-%d-%H-%M")
+    elif step == 'day':
+        # if time step is day, generate a list in 1 day increments
+        # total days
+        days = time_delta.days
+        cur_time = start_time - datetime.timedelta(days=1)
+        for day in range(days + 1):
+            cur_time = cur_time + datetime.timedelta(days=1)
+            yield datetime.datetime.strftime(cur_time, "%Y-%m-%d-%H-%M")
+    else:
+        print('dateRange.step set error!')
 
-def dateLength(start, end, format="%Y-%m-%d-%H-%M"):
+
+def dateLength(start, end, step, format="%Y-%m-%d-%H-%M"):
     '''
     compute the total length of datelist
     purpose: estimate the scrapy time
@@ -40,9 +61,15 @@ def dateLength(start, end, format="%Y-%m-%d-%H-%M"):
     start_time = datetime.datetime.strptime(start, format)
     end_time = datetime.datetime.strptime(end, format)
     time_delta = end_time - start_time
-    # total minutes
-    minutes = (time_delta.seconds + time_delta.days * 24 * 3600) // 60
-    return minutes
+    if step == 'minute':
+        # total minutes
+        totaltime = (time_delta.seconds + time_delta.days * 24 * 3600) // 60
+    elif step == 'hour':
+        totaltime = (time_delta.seconds + time_delta.days * 24) // 60
+    elif step == 'day':
+        totaltime = time_delta.days
+
+    return totaltime
 
 def area_code_find(area_list, area_name):
     '''
@@ -107,8 +134,12 @@ def scrapy_data(area = ['水围','珠光'], qtype='RainM30', start_time='2019-09
         'token': 'Dynamic acquisition'
     }
     # Encapsulation of parameters
-    min_list = dateRange(start_time, end_time)
-    total_mimutes = dateLength(start_time, end_time)
+    if qtype == 'RainDayR24H':
+        time_list = dateRange(start_time, end_time, step='day')
+        total_time = dateLength(start_time, end_time, step='day')
+    else:
+        time_list = dateRange(start_time, end_time, step='minute')
+        total_time = dateLength(start_time, end_time, step='minute')
 
     # Place name converted to code name
     try:
@@ -130,7 +161,7 @@ def scrapy_data(area = ['水围','珠光'], qtype='RainM30', start_time='2019-09
         print('%10s' % (area_index), end=' ')
     print('\n')
     rows = []
-    for index, time_min in track(enumerate(min_list), total=total_mimutes, description='爬取中...'):
+    for index, time_min in track(enumerate(time_list), total=total_time, description='爬取中...'):
 
         # every 12 hours, update the token, not update in the start time
         if (index//60) % 12 == 0 and time_min != 0:
