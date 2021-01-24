@@ -162,7 +162,6 @@ def scrapy_data(area = ['水围','珠光'], qtype='RainM30', start_time='2019-09
         print('%10s' % (area_index), end=' ')
     print('\n')
     rows = []
-    results = defaultdict(list)
     for index, time_min in track(enumerate(time_list), total=total_time, description='爬取中...'):
         # every 12 hours, update the token, not update in the start time
         if (index//60) % 12 == 0 and time_min != 0:
@@ -183,11 +182,12 @@ def scrapy_data(area = ['水围','珠光'], qtype='RainM30', start_time='2019-09
         print('\n')
         rows.append(row)
         # every 6 hours data, write the rows into file
-        if (index % 360 == 0) and (index != 0) :
-            with open(file_name, 'a+') as f:
+        if (index % 1 == 0) and (index != 0) :
+            with open(file_name, 'a+', newline='') as f:
                 writer = csv.writer(f)
                 writer.writerows(rows)
             print('*'*20, '节点保存', '*'*20)
+            rows = []
 
 
 if __name__ == '__main__':
