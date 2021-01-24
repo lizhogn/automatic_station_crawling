@@ -171,15 +171,15 @@ def scrapy_data(area = ['水围','珠光'], qtype='RainM30', start_time='2019-09
         # fill the time in the dict data
         data['datetime'] = time_min
         json_data = requests.post(url, headers=headers, data=data).json()
-        if not json_data['data']:
-            # raise ValueError('返回数据为空，数据库中无 %s 的数据, 请检查start_time!' % (time_min))
-            for area_index in area:
-                json_data['data'][name_code[area_index]] = '--'
         print('%-20s' % (time_min), end='\t')
         row = [time_min]
         for area_index in area:
-            print('%10s' % (json_data['data'][name_code[area_index]]), end=' ')
-            row.append(json_data['data'][name_code[area_index]])
+            try:
+                print('%10s' % (json_data['data'][name_code[area_index]]), end=' ')
+                row.append(json_data['data'][name_code[area_index]])
+            except:
+                print('%10s' % ('--'), end=' ')
+                row.append('--')
         print('\n')
         rows.append(row)
         # every 6 hours data, write the rows into file
