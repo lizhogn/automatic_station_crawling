@@ -4,6 +4,7 @@ import datetime
 import argparse
 import csv, json
 import os, re
+from collections import defaultdict
 
 try:
     import requests
@@ -161,8 +162,8 @@ def scrapy_data(area = ['水围','珠光'], qtype='RainM30', start_time='2019-09
         print('%10s' % (area_index), end=' ')
     print('\n')
     rows = []
+    results = defaultdict(list)
     for index, time_min in track(enumerate(time_list), total=total_time, description='爬取中...'):
-
         # every 12 hours, update the token, not update in the start time
         if (index//60) % 12 == 0 and time_min != 0:
             data = update_token(headers, data)
@@ -171,7 +172,9 @@ def scrapy_data(area = ['水围','珠光'], qtype='RainM30', start_time='2019-09
         data['datetime'] = time_min
         json_data = requests.post(url, headers=headers, data=data).json()
         if not json_data['data']:
-            raise ValueError('返回数据为空，数据库中无 %s 的数据, 请检查start_time!' % (time_min))
+            # raise ValueError('返回数据为空，数据库中无 %s 的数据, 请检查start_time!' % (time_min))
+            for area_index in area:
+                json_data['data'][name_code[area_index]] = '--'
         print('%-20s' % (time_min), end='\t')
         row = [time_min]
         for area_index in area:
